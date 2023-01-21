@@ -1,4 +1,9 @@
 import discord
+import schedule
+from typing import List, Dict, Union
+import logging
+from dict import *
+from prettytable import PrettyTable
 from datetime import datetime, timedelta
 import asyncio
 
@@ -9,88 +14,158 @@ TOKEN = ""
 channel_id = ""
 
 bot = discord.Client(intents=discord.Intents.all())
-
-boss_timers = [
-    {"name": "คูทุม", "day_of_week": "Monday", "time": "00:30"},
-    {"name": "นูเวอร์", "day_of_week": "Tuesday", "time": "00:30"},
-    {"name": "คจาคาร์ & โอฟิน", "day_of_week": "Wednesday", "time": "00:30"},
-    {"name": "คูทุม", "day_of_week": "Thursday", "time": "00:30"},
-    {"name": "นูเวอร์", "day_of_week": "Friday", "time": "00:30"},
-    {"name": "คารานด้า", "day_of_week": "Saturday", "time": "00:30"},
-    {"name": "คจาคาร์", "day_of_week": "Sunday", "time": "00:30"},
-    {"name": "คจาคาร์ & นูเวอร์", "day_of_week": "Monday", "time": "10:00"},
-    {"name": "คูทุม & คารานด้า", "day_of_week": "Tuesday", "time": "10:00"},
-    {"name": "คูทุม & นูเวอร์", "day_of_week": "Wednesday", "time": "10:00"},
-    {"name": "คารานด้า & คจาคาร์", "day_of_week": "Thursday", "time": "10:00"},
-    {"name": "คูทุม & คจาคาร์", "day_of_week": "Friday", "time": "10:00"},
-    {"name": "คูทุม & คจาคาร์", "day_of_week": "Saturday", "time": "10:00"},
-    {"name": "คจาคาร์ & คารานด้า", "day_of_week": "Sunday", "time": "10:00"},
-    {"name": "คูทุม & นูเวอร์", "day_of_week": "Monday", "time": "14:00"},
-    {"name": "คูทุม & คจาคาร์", "day_of_week": "Tuesday", "time": "14:00"},
-    {"name": "คารานด้า & คจาคาร์", "day_of_week": "Wednesday", "time": "14:00"},
-    {"name": "คูทุม & นูเวอร์", "day_of_week": "Thursday", "time": "14:00"},
-    {"name": "คารานด้า & คจาคาร์", "day_of_week": "Friday", "time": "14:00"},
-    {"name": "คารานด้า & นูเวอร์", "day_of_week": "Saturday", "time": "14:00"},
-    {"name": "คูทุม & คารานด้า", "day_of_week": "Sunday", "time": "14:00"},
-    {"name": "กามอธ", "day_of_week": "Saturday", "time": "15:00"},
-    {"name": "เบลล์", "day_of_week": "Sunday", "time": "15:00"},
-    {"name": "คจาคาร์ & คารานด้า", "day_of_week": "Monday", "time": "19:00"},
-    {"name": "มูลัคคา & กวินท์", "day_of_week": "Tuesday", "time": "19:00"},
-    {"name": "คูทุม & นูเวอร์", "day_of_week": "Wednesday", "time": "19:00"},
-    {"name": "นูเวอร์ & คารานด้า", "day_of_week": "Thursday", "time": "19:00"},
-    {"name": "คูทุม & นูเวอร์", "day_of_week": "Friday", "time": "19:00"},
-    {"name": "มูลัคคา & กวินท์", "day_of_week": "Saturday", "time": "19:00"},
-    {"name": "คจาคาร์ & คารานด้า", "day_of_week": "Sunday", "time": "19:00"},
-    {"name": "โอฟิน", "day_of_week": "Monday", "time": "23:00"},
-    {"name": "กามอธ", "day_of_week": "Tuesday", "time": "23:00"},
-    {"name": "เบลล์", "day_of_week": "Wednesday", "time": "23:00"},
-    {"name": "กามอธ", "day_of_week": "Thursday", "time": "23:00"},
-    {"name": "โอฟิน", "day_of_week": "Friday", "time": "23:00"},
-    {"name": "คูทุม & นูเวอร์", "day_of_week": "Sunday", "time": "23:00"},
-    ]
-    
-weekday_dict = {
-    'Monday': 0,
-    'Tuesday': 1,
-    'Wednesday': 2,
-    'Thursday': 3,
-    'Friday': 4,
-    'Saturday': 5,
-    'Sunday': 6
-}
-
-async def alert(boss_name, delay):
-    channel_id = 1000000000000004  # Replace with your channel ID
-    target_time = datetime.now() + timedelta(seconds=delay)
-    thirty_min_alert = target_time - timedelta(minutes=30)
-    fifteen_min_alert = target_time - timedelta(minutes=15)
-    five_min_alert = target_time - timedelta(minutes=5)
-    while datetime.now() < target_time:
-        await asyncio.sleep(5)  # wait for 5 seconds before checking again
-        if datetime.now() > thirty_min_alert:
-            await bot.get_channel(channel_id).send(f"@everyone 30 นาทีบอส {boss_name} กำลังจะเกิด !")
-            thirty_min_alert = None
-        if datetime.now() > fifteen_min_alert:
-            await bot.get_channel(channel_id).send(f"@everyone 15 นาทีบอส {boss_name} กำลังจะเกิด !")
-            fifteen_min_alert = None
-        if datetime.now() > five_min_alert:
-            await bot.get_channel(channel_id).send(f"@everyone 5 นาทีบอส {boss_name} กำลังจะเกิด !")
-            five_min_alert = None
-            await bot.get_channel(channel_id).send(f"@everyone บอส {boss_name} เกิดแล้ว รีบไปหวดแม่งเลย !")
+logger = logging.getLogger(__name__)
 
 @bot.event
+# async def on_ready():
+#     channel_id = 1065650881036550234 # hardcoded channel ID
+#     for timer in boss_timers:
+#         now = datetime.now()
+#         time = datetime.strptime(timer["time"], "%H:%M").time()
+#         target_day = now.replace(hour=time.hour, minute=time.minute, second=0, microsecond=0)
+#         if datetime.now().weekday() == weekday_dict[timer["day_of_week"]]:
+#             if now.time() > time:
+#                     target_day += timedelta(days=1)
+#         else:
+#             target_day += timedelta(days=(weekday_dict[timer["day_of_week"]] - now.weekday()) % 7)
+#         delay = (target_day - datetime.now()).total_seconds()
+#         bot.loop.create_task(alert(timer["name"], delay, channel_id))
+#         await asyncio.sleep(1)
+
+
+# async def alert(boss_name: str, delay: int, channel_id: int) -> None:
+#     channel_id = 1065650881036550234 # hardcoded channel ID
+#     messages = [f"@everyone 30 minutes left before {boss_name} spawns!",
+#                 f"@everyone 15 minutes left before {boss_name} spawns!",
+#                 f"@everyone 5 minutes left before {boss_name} spawns!",
+#                 f"@everyone {boss_name} has spawned!"]
+
+#     delay = delay - 1800  # starts sending messages 30 minutes before spawn
+#     delay_between_messages = [1800, 900, 900, 300]
+#     for i in range(len(messages)):
+#         await asyncio.sleep(delay)
+#         try:
+#             await bot.get_channel(channel_id).send(messages[i])
+#         except Exception as e:
+#             print("Error occured: ", e)
+#         delay += delay_between_messages[i]
+
+
+# async def show_table(channel):
+#     table = PrettyTable()
+#     table.field_names = ["Boss Name", "Day of Week", "Time"]
+#     for boss in boss_timers:
+#         table.add_row([boss["name"], boss["day_of_week"], boss["time"]])
+#     await channel.send("```"+table.get_string()+"```")
+
 async def on_ready():
     for timer in boss_timers:
         now = datetime.now()
         time = datetime.strptime(timer["time"], "%H:%M").time()
-        target_day = now.replace(hour=time.hour, minute=time.minute, second=0, microsecond=0)
-        if datetime.now().weekday() == weekday_dict[timer["day_of_week"]]:
+        target_day = datetime.combine(now, time)
+        if now.weekday() == weekday_dict[timer["day_of_week"]]:
             if now.time() > time:
-                target_day += timedelta(days=7)
+                target_day += timedelta(days=1)
         else:
             target_day += timedelta(days=(weekday_dict[timer["day_of_week"]] - now.weekday()) % 7)
-        delay = (target_day - datetime.now()).total_seconds()
-        bot.loop.create_task(alert(timer["name"], delay))
+        if target_day > now:
+            delay = (target_day - datetime.now()).total_seconds()
+            channel = discord.utils.get(bot.guilds[0].channels, name='boss-alert')
+            if channel:
+                bot.loop.create_task(alert(timer["name"], target_day, channel.id))
+                await asyncio.sleep(1)
+            else:
+                print(f'Error: Channel "boss-alert" not found')
+
+async def alert(boss_name: str, target_time: datetime, channel_id: int) -> None:
+    messages = [f"@everyone 30 minutes left before {boss_name} spawns!",
+                f"@everyone 15 minutes left before {boss_name} spawns!",
+                f"@everyone 5 minute left before {boss_name} spawns!",
+                f"@everyone {boss_name} has spawned!"]
+    message_times = [target_time - timedelta(minutes=30),
+                     target_time - timedelta(minutes=15),
+                     target_time - timedelta(minutes=5),
+                     target_time]
+    i = 0
+    while True:
+        now = datetime.now()
+        if now >= message_times[i]:
+            try:
+                channel = bot.get_channel(channel_id)
+                if channel is None:
+                    logger.error(f'Error: Could not find channel with ID {channel_id}')
+                    return
+                await channel.send(messages[i])
+                i += 1
+                if i >= len(messages):
+                    break
+            except discord.errors.Forbidden as e:
+                logger.error(f"Error occured: {e}")
+                return
+        await asyncio.sleep(60)
+
+
+# async def alert(boss_name: str, delay: int, channel_id: int) -> None:
+#     messages = [f"@everyone 3 minutes left before {boss_name} spawns!",
+#                 f"@everyone 2 minutes left before {boss_name} spawns!",
+#                 f"@everyone 1 minute left before {boss_name} spawns!",
+#                 f"@everyone {boss_name} has spawned!"]
+
+#     delay = delay - 180  # starts sending messages 3 minutes before spawn
+#     for i in range(len(messages) -1):
+#         await asyncio.sleep(60 * (3-i))
+#         try:
+#             channel = bot.get_channel(channel_id)
+#             if channel is None:
+#                 print(f'Error: Could not find channel with ID {channel_id}')
+#                 return
+#             await channel.send(messages[i])
+#         except Exception as e:
+#             print("Error occured: ", e)
+#     await asyncio.sleep(delay)
+#     try:
+#         channel = bot.get_channel(channel_id)
+#         if channel is None:
+#             print(f'Error: Could not find channel with ID {channel_id}')
+#             return
+#         await channel.send(messages[-1])
+#     except Exception as e:
+#         print("Error occured: ", e)
+
+async def show_table(channel):
+    table = PrettyTable()
+    table.field_names = ["Boss Name", "Day of Week", "Time"]
+    for boss in boss_timers:
+        table.add_row([boss["name"], boss["day_of_week"], boss["time"]])
+
+    embed = discord.Embed(title="Boss Timers", description=f"```{table.get_string()}```", color=0x00ff00)
+    await channel.send(embed=embed)
+
+async def show_today_table(channel):
+    today_weekday = datetime.now().strftime("%A")
+    now = datetime.now()
+    table = PrettyTable()
+    table.field_names = ["Boss Name", "Time"]
+    next_boss = None
+    next_time = None
+    for timer in boss_timers:
+        time = datetime.strptime(timer["time"], "%H:%M").time()
+        if timer['day_of_week'] == today_weekday:
+            table.add_row([timer["name"], timer["time"]])
+            target_day = now.replace(hour=time.hour, minute=time.minute, second=0, microsecond=0)
+            if now.time() > time:
+                target_day += timedelta(days=7)
+            if next_time is None or target_day < next_time:
+                next_boss = timer["name"]
+                next_time = target_day
+    if next_boss is None:
+        await channel.send("No upcoming boss spawns.")
+    else:
+        time_until = next_time - datetime.now()
+        hours, remainder = divmod(int(time_until.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        await channel.send("```"+table.get_string()+"```")
+        await channel.send(f"\nบอสตัวต่อไป ```{next_boss}``` จะเกิดในอีก {hours} ชั่วโมง, {minutes} นาที.")
 
 @bot.event
 async def on_message(message):
@@ -115,6 +190,10 @@ async def on_message(message):
             time_until = next_time - datetime.now()
             hours, remainder = divmod(int(time_until.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
-            await message.channel.send(f"บอสตัวต่อไป {next_boss} จะเกิดในอีก {hours} ชั่วโมง, {minutes} นาที.")
+            await message.channel.send(f"บอสตัวต่อไป ```{next_boss}``` จะเกิดในอีก {hours} ชั่วโมง, {minutes} นาที.")
+    if message.content.startswith("!table"):
+        await show_table(message.channel)
+    if message.content.startswith("!today"):
+        await show_today_table(message.channel)
 
 bot.run(TOKEN)
